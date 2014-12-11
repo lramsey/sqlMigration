@@ -240,7 +240,7 @@ MySQL.prototype.start = function(){
             table = "GL_USER";
             targets = ["EMAIL", "FIRST_NAME", "institution_id", "LAST_NAME", "USERNAME"];
             dependentTables = ["GL_MEMBERSHIP"];
-            conflictFields = ["EMAIL", "USERNAME"];
+            conflictFields = ["USERNAME"];
             return this.rowEach(table, targets, dependentTables, conflictFields);
         }.bind(this))
         .then(function(){
