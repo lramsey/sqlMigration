@@ -74,7 +74,7 @@ MySQL.prototype.selectRowById = function(table, id){
     }.bind(this));
 };
 
-MySQL.prototype.rowEach = function(table, targets, dependentTables){
+MySQL.prototype.rowEach = function(table, targets, dependentTables, conflictFields){
     var rowCount = 0;
     var id = 1;
     var glgamesRow;
@@ -99,7 +99,7 @@ MySQL.prototype.rowEach = function(table, targets, dependentTables){
                                                 glgamesRow[key] = value.toJSON()[0];
                                             }
                                         });
-                                        console.log("glgamesRow:",glgamesRow);
+                                        //console.log("glgamesRow:",glgamesRow);
                                         rowCount--;
                                         comparers = [];
                                         targets.forEach(function(key){
@@ -127,9 +127,17 @@ MySQL.prototype.rowEach = function(table, targets, dependentTables){
                                         } else{
                                             comparers.push("id=" + glgamesRow.id);
                                         }
-                                        return playfully_prod_live.hasMatch(table,comparers);
-                                    } else {
+                                        return playfully_prod_live.hasMatch(table, comparers);
+                                    } else if(conflictFields.length > 0) {
                                         // check for conflicts as well, eventually. not match but could have some matching columns
+                                        comparers = [];
+                                        conflictFields.forEach(function(key){
+                                            var value = glgamesRow[key];
+                                            value = JSON.stringify(value);
+                                            comparers.push(key + '=' + value);
+                                        });
+                                        return playfully_prod_live.conflictCheck(table, comparers);
+                                    } else{
                                         return "new";
                                     }
                                 }.bind(this))
@@ -137,6 +145,8 @@ MySQL.prototype.rowEach = function(table, targets, dependentTables){
                                     var status;
                                     if(output === "new"){
                                         status = '"new"';
+                                    } else if(output === "conflict"){
+                                        status = '"conflict"';
                                     } else if(output){
                                         status = '"done"';
                                     } else if(output === false){
@@ -144,7 +154,7 @@ MySQL.prototype.rowEach = function(table, targets, dependentTables){
                                     }
                                     if(output !== "skip"){
                                         var newId;
-                                        if(status === '"new"'){
+                                        if(status === '"new"'|| status === '"conflict"'){
                                             newId = -1;
                                         } else{
                                             newId = glasslabgamesRow || glgamesRow;
@@ -158,7 +168,7 @@ MySQL.prototype.rowEach = function(table, targets, dependentTables){
                                         id = "id = " + id;
                                         var columnsToUpdate = [status, newId];
                                         var whereConditions = [id];
-                                        console.log("status:", status);
+                                        //console.log("status:", status);
                                         return this.updateColumns(table, columnsToUpdate, whereConditions);
                                     }
                                     return true;
@@ -206,33 +216,39 @@ MySQL.prototype.rowEach = function(table, targets, dependentTables){
 };
 
 MySQL.prototype.start = function(){
+    console.log('start migration script');
     var table = "GL_INSTITUTION";
     var targets = ["TITLE", "code", "CITY"];
     var dependentTables = ["GL_USER", "GL_COURSE", "GL_CODE"];
-    this.rowEach(table, targets, dependentTables)
+    var conflictFields = [];
+    this.rowEach(table, targets, dependentTables, conflictFields)
         .then(function(){
             table = "GL_COURSE";
             targets = ["code", "institution_id", "TITLE"];
             dependentTables = ["GL_CODE", "GL_MEMBERSHIP"];
-            return this.rowEach(table, targets, dependentTables);
+            conflictFields = [];
+            return this.rowEach(table, targets, dependentTables, conflictFields);
         }.bind(this))
         .then(function(){
             table = "GL_CODE";
             targets = ["CODE", "course_id", "institution_id"];
             dependentTables = [];
-            return this.rowEach(table, targets, dependentTables);
+            conflictFields = [];
+            return this.rowEach(table, targets, dependentTables, conflictFields);
         }.bind(this))
         .then(function(){
             table = "GL_USER";
             targets = ["EMAIL", "FIRST_NAME", "institution_id", "LAST_NAME", "USERNAME"];
             dependentTables = ["GL_MEMBERSHIP"];
-            return this.rowEach(table, targets, dependentTables);
+            conflictFields = ["EMAIL", "USERNAME"];
+            return this.rowEach(table, targets, dependentTables, conflictFields);
         }.bind(this))
         .then(function(){
             table = "GL_MEMBERSHIP";
             targets = ["course_id", "user_id"];
             dependentTables = [];
-            return this.rowEach(table, targets, dependentTables);
+            conflictFields = [];
+            return this.rowEach(table, targets, dependentTables, conflictFields);
         }.bind(this))
         .then(function(){
             console.log("done");
@@ -259,6 +275,24 @@ MySQL.prototype.updateColumns = function(table, columnsToUpdate, whereConditions
     }.bind(this))
 };
 
+MySQL.prototype.conflictCheck = function(table, comparers){
+    return when.promise(function(resolve, reject){
+        var comparison = comparers.join(' or ');
+        var Q = "SELECT * FROM " + this.options.database + "." + table + " WHERE " + comparison + ";";
+        this.query(Q)
+            .then(function(output){
+                var row = output[0];
+                if(row){
+                    resolve('conflict');
+                } else{
+                    resolve('new');
+                }
+            })
+            .then(null, function(err){
+                reject(err);
+            })
+    }.bind(this));
+};
 
 MySQL.prototype.hasMatch = function(table, comparers){
     return when.promise(function(resolve, reject){
@@ -279,11 +313,5 @@ MySQL.prototype.hasMatch = function(table, comparers){
     }.bind(this));
 };
 
-
-//var valuesToCheck
-//selectRow('playfully_prod_live', 'GL_INSTITUTION', 3);
-//rowEach('playfully_prod_live', 'GL_INSTITUTION');
-//var playfully_prod_live = new MySQL('playfully_prod_live');
 var playfully_prod = new MySQL('playfully_prod');
 playfully_prod.start();
-
