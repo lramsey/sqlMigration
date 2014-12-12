@@ -1,0 +1,61 @@
+// add column to table
+ALTER TABLE
+    playfully_prod.GL_CODE
+ADD
+    new_institution_id BIGINT(20);
+
+
+// drop column in table
+ALTER TABLE
+    playfully_prod.GL_CODE
+DROP
+    new_institution_Id;
+
+// update certain columns in a where certain condition is true
+UPDATE
+    playfully_prod.GL_INSTITUTION SET enabled = 1
+WHERE
+    id = 1;
+
+
+// select all conflict users, with certain columns
+SELECT
+    id,email,username,system_role,first_name,last_name,institution_id,date_created
+FROM
+    playfully_prod.GL_USER WHERE status='conflict'
+LIMIT 100000;
+
+
+//compare both dbs users
+SELECT
+	playfully_prod.GL_USER.status,playfully_prod.GL_USER.new_id,
+	playfully_prod.GL_USER.id,playfully_prod_live.GL_USER.id,
+	playfully_prod.GL_USER.email,playfully_prod_live.GL_USER.email,
+	playfully_prod.GL_USER.username,playfully_prod_live.GL_USER.username,
+	playfully_prod.GL_USER.system_role,playfully_prod_live.GL_USER.system_role,
+	playfully_prod.GL_USER.first_name,playfully_prod_live.GL_USER.first_name,
+	playfully_prod.GL_USER.last_name,playfully_prod_live.GL_USER.last_name,
+	playfully_prod.GL_USER.institution_id,playfully_prod_live.GL_USER.institution_id,
+	playfully_prod.GL_USER.new_institution_id
+FROM
+	playfully_prod.GL_USER, playfully_prod_live.GL_USER
+WHERE
+	playfully_prod.GL_USER.status = 'conflict' and
+	playfully_prod.GL_USER.USERNAME = playfully_prod_live.GL_USER.username
+LIMIT 100000;
+
+
+//compare both dbs institutions
+SELECT
+	playfully_prod.GL_INSTITUTION.status,playfully_prod.GL_INSTITUTION.new_id,
+	playfully_prod.GL_INSTITUTION.id,playfully_prod_live.GL_INSTITUTION.id,
+	playfully_prod.GL_INSTITUTION.city,playfully_prod_live.GL_INSTITUTION.city,
+	playfully_prod.GL_INSTITUTION.code,playfully_prod_live.GL_INSTITUTION.code,
+	playfully_prod.GL_INSTITUTION.title,playfully_prod_live.GL_INSTITUTION.title
+FROM
+	playfully_prod.GL_INSTITUTION,playfully_prod_live.GL_INSTITUTION
+WHERE
+	playfully_prod.GL_INSTITUTION.title = playfully_prod_live.GL_INSTITUTION.title and
+	playfully_prod.GL_INSTITUTION.code = playfully_prod_live.GL_INSTITUTION.code and
+	playfully_prod.GL_INSTITUTION.city = playfully_prod_live.GL_INSTITUTION.city
+LIMIT 100000;

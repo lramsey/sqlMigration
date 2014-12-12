@@ -101,18 +101,28 @@ MySQL.prototype.rowEach = function(table, targets, dependentTables, conflictFiel
                                         });
                                         //console.log("glgamesRow:",glgamesRow);
                                         rowCount--;
-                                        comparers = [];
-                                        targets.forEach(function(key){
-                                            var comparer;
-                                            var value = glgamesRow[key];
-                                            if(value === null){
-                                                comparer = key + " IS null";
-                                            } else{
-                                                value = JSON.stringify(glgamesRow[key]);
-                                                comparer = key + "=" + value;
-                                            }
-                                            comparers.push(comparer)
-                                        });
+                                        comparers = prepareComparers(targets, glgamesRow);
+                                        //targets.forEach(function(key){
+                                        //    var keys = key.split(',');
+                                        //    var keyGL = keys[0];
+                                        //    var value;
+                                        //    if(keys.length > 1){
+                                        //        value = glgamesRow[keys[1]];
+                                        //    } else{
+                                        //        value = glgamesRow[keyGL];
+                                        //    }
+                                        //    if(value === undefined){
+                                        //        var stop = 'stop';
+                                        //    }
+                                        //    var comparer;
+                                        //    if(value === null){
+                                        //        comparer = keyGL + " IS null";
+                                        //    } else{
+                                        //        value = JSON.stringify(glgamesRow[key]);
+                                        //        comparer = keyGL + "=" + value;
+                                        //    }
+                                        //    comparers.push(comparer)
+                                        //});
                                         return playfully_prod_live.hasMatch(table, comparers)
                                     }
                                     return "no row at id";
@@ -130,12 +140,19 @@ MySQL.prototype.rowEach = function(table, targets, dependentTables, conflictFiel
                                         return playfully_prod_live.hasMatch(table, comparers);
                                     } else if(conflictFields.length > 0) {
                                         // check for conflicts as well, eventually. not match but could have some matching columns
-                                        comparers = [];
-                                        conflictFields.forEach(function(key){
-                                            var value = glgamesRow[key];
-                                            value = JSON.stringify(value);
-                                            comparers.push(key + '=' + value);
-                                        });
+                                        comparers = prepareComparers(conflictFields, glgamesRow);
+                                        //conflictFields.forEach(function(key){
+                                        //    var keys = key.split(',');
+                                        //    var keyGL = keys[0];
+                                        //    var value;
+                                        //    if(keys.length > 1){
+                                        //        value = glgamesRow[keys[1]];
+                                        //    } else{
+                                        //        value = glgamesRow[keyGL];
+                                        //    }
+                                        //    value = JSON.stringify(value);
+                                        //    comparers.push(keyGL + '=' + value);
+                                        //});
                                         return playfully_prod_live.conflictCheck(table, comparers);
                                     } else{
                                         return "new";
@@ -224,28 +241,28 @@ MySQL.prototype.start = function(){
     this.rowEach(table, targets, dependentTables, conflictFields)
         .then(function(){
             table = "GL_COURSE";
-            targets = ["code", "institution_id", "TITLE"];
+            targets = ["code", "institution_id,new_institution_id", "TITLE"];
             dependentTables = ["GL_CODE", "GL_MEMBERSHIP"];
             conflictFields = [];
             return this.rowEach(table, targets, dependentTables, conflictFields);
         }.bind(this))
         .then(function(){
             table = "GL_CODE";
-            targets = ["CODE", "course_id", "institution_id"];
+            targets = ["CODE", "course_id,new_course_id", "institution_id,new_institution_id"];
             dependentTables = [];
             conflictFields = [];
             return this.rowEach(table, targets, dependentTables, conflictFields);
         }.bind(this))
         .then(function(){
             table = "GL_USER";
-            targets = ["EMAIL", "FIRST_NAME", "institution_id", "LAST_NAME", "USERNAME"];
+            targets = ["EMAIL", "FIRST_NAME", "institution_id,new_institution_id", "LAST_NAME", "USERNAME"];
             dependentTables = ["GL_MEMBERSHIP"];
             conflictFields = ["USERNAME"];
             return this.rowEach(table, targets, dependentTables, conflictFields);
         }.bind(this))
         .then(function(){
             table = "GL_MEMBERSHIP";
-            targets = ["course_id", "user_id"];
+            targets = ["course_id,new_course_id", "user_id,new_user_id"];
             dependentTables = [];
             conflictFields = [];
             return this.rowEach(table, targets, dependentTables, conflictFields);
@@ -315,3 +332,29 @@ MySQL.prototype.hasMatch = function(table, comparers){
 
 var playfully_prod = new MySQL('playfully_prod');
 playfully_prod.start();
+
+function prepareComparers(items, row){
+    var comparers = [];
+    items.forEach(function(item){
+        var keys = item.split(',');
+        var key = keys[0];
+        var value;
+        if(keys.length>1){
+            value = row[keys[1]];
+        } else{
+            value = row[key];
+        }
+        if(value === undefined){
+            var stop = 'stop';
+        }
+        var comparer;
+        if(value === null){
+            comparer = key + " IS null";
+        } else{
+            value = JSON.stringify(value);
+            comparer = key + "=" + value;
+        }
+        comparers.push(comparer);
+    });
+    return comparers;
+}
