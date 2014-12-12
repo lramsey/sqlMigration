@@ -1,3 +1,10 @@
+// insert row into table
+INSERT INTO
+	playfully_prod.GL_INSTITUTION
+    (version,enabled,title,status,date_created, last_updated)
+VALUES
+	(5000,0,'testtest','test','2014-12-11 01:23:45','2014-12-11 01:23:45');
+
 // add column to table
 ALTER TABLE
     playfully_prod.GL_CODE

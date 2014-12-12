@@ -29,7 +29,7 @@ function prepareComparers(items, row){
     return comparers;
 }
 
-MySQL.prototype.rowEach = function(table, targets, dependentTables, conflictFields){
+MySQL.prototype.formatEach = function(table, targets, dependentTables, conflictFields){
     var rowCount = 0;
     var id = 1;
     var dones = 0;
@@ -208,45 +208,45 @@ MySQL.prototype.conflictCheck = function(table, comparers){
 };
 
 MySQL.prototype.format = function(){
-    console.log('start migration script');
+    console.log('start formatting script');
     var table = "GL_INSTITUTION";
     var targets = ["TITLE", "code", "CITY"];
     var dependentTables = ["GL_USER", "GL_COURSE", "GL_CODE"];
     var conflictFields = [];
-    this.rowEach(table, targets, dependentTables, conflictFields)
+    this.formatEach(table, targets, dependentTables, conflictFields)
         .then(function(){
             table = "GL_COURSE";
             targets = ["code", "institution_id,new_institution_id", "TITLE"];
             dependentTables = ["GL_CODE", "GL_MEMBERSHIP"];
             conflictFields = [];
-            return this.rowEach(table, targets, dependentTables, conflictFields);
+            return this.formatEach(table, targets, dependentTables, conflictFields);
         }.bind(this))
         .then(function(){
             table = "GL_CODE";
             targets = ["CODE", "course_id,new_course_id", "institution_id,new_institution_id"];
             dependentTables = [];
             conflictFields = [];
-            return this.rowEach(table, targets, dependentTables, conflictFields);
+            return this.formatEach(table, targets, dependentTables, conflictFields);
         }.bind(this))
         .then(function(){
             table = "GL_USER";
             targets = ["EMAIL", "FIRST_NAME", "institution_id,new_institution_id", "LAST_NAME", "USERNAME"];
             dependentTables = ["GL_MEMBERSHIP"];
             conflictFields = ["USERNAME"];
-            return this.rowEach(table, targets, dependentTables, conflictFields);
+            return this.formatEach(table, targets, dependentTables, conflictFields);
         }.bind(this))
         .then(function(){
             table = "GL_MEMBERSHIP";
             targets = ["course_id,new_course_id", "user_id,new_user_id"];
             dependentTables = [];
             conflictFields = [];
-            return this.rowEach(table, targets, dependentTables, conflictFields);
+            return this.formatEach(table, targets, dependentTables, conflictFields);
         }.bind(this))
         .then(function(){
-            console.log("done");
+            console.log("formatting complete");
         })
         .then(null, function(err){
-            console.log(err);
+            console.log('formatting error -',err);
         });
 };
 
