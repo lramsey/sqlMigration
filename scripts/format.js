@@ -92,7 +92,7 @@ MySQL.prototype.rowEach = function(table, targets, dependentTables, conflictFiel
                                     } else if(output === "conflict"){
                                         status = '"conflict"';
                                         conflicts++;
-                                    } else if(output){
+                                    } else if(typeof output === 'object'){
                                         status = '"done"';
                                         dones++;
                                     } else if(output === false){
