@@ -77,6 +77,10 @@ MySQL.prototype.selectRowById = function(table, id){
 MySQL.prototype.rowEach = function(table, targets, dependentTables, conflictFields){
     var rowCount = 0;
     var id = 1;
+    var dones = 0;
+    var keychanges = 0;
+    var news = 0;
+    var conflicts = 0;
     var glgamesRow;
     var glasslabgamesRow;
     var comparers;
@@ -102,27 +106,6 @@ MySQL.prototype.rowEach = function(table, targets, dependentTables, conflictFiel
                                         //console.log("glgamesRow:",glgamesRow);
                                         rowCount--;
                                         comparers = prepareComparers(targets, glgamesRow);
-                                        //targets.forEach(function(key){
-                                        //    var keys = key.split(',');
-                                        //    var keyGL = keys[0];
-                                        //    var value;
-                                        //    if(keys.length > 1){
-                                        //        value = glgamesRow[keys[1]];
-                                        //    } else{
-                                        //        value = glgamesRow[keyGL];
-                                        //    }
-                                        //    if(value === undefined){
-                                        //        var stop = 'stop';
-                                        //    }
-                                        //    var comparer;
-                                        //    if(value === null){
-                                        //        comparer = keyGL + " IS null";
-                                        //    } else{
-                                        //        value = JSON.stringify(glgamesRow[key]);
-                                        //        comparer = keyGL + "=" + value;
-                                        //    }
-                                        //    comparers.push(comparer)
-                                        //});
                                         return playfully_prod_live.hasMatch(table, comparers)
                                     }
                                     return "no row at id";
@@ -141,18 +124,6 @@ MySQL.prototype.rowEach = function(table, targets, dependentTables, conflictFiel
                                     } else if(conflictFields.length > 0) {
                                         // check for conflicts as well, eventually. not match but could have some matching columns
                                         comparers = prepareComparers(conflictFields, glgamesRow);
-                                        //conflictFields.forEach(function(key){
-                                        //    var keys = key.split(',');
-                                        //    var keyGL = keys[0];
-                                        //    var value;
-                                        //    if(keys.length > 1){
-                                        //        value = glgamesRow[keys[1]];
-                                        //    } else{
-                                        //        value = glgamesRow[keyGL];
-                                        //    }
-                                        //    value = JSON.stringify(value);
-                                        //    comparers.push(keyGL + '=' + value);
-                                        //});
                                         return playfully_prod_live.conflictCheck(table, comparers);
                                     } else{
                                         return "new";
@@ -162,12 +133,16 @@ MySQL.prototype.rowEach = function(table, targets, dependentTables, conflictFiel
                                     var status;
                                     if(output === "new"){
                                         status = '"new"';
+                                        news++;
                                     } else if(output === "conflict"){
                                         status = '"conflict"';
+                                        conflicts++;
                                     } else if(output){
                                         status = '"done"';
+                                        dones++;
                                     } else if(output === false){
                                         status = '"key-change"';
+                                        keychanges++;
                                     }
                                     if(output !== "skip"){
                                         var newId;
@@ -216,6 +191,13 @@ MySQL.prototype.rowEach = function(table, targets, dependentTables, conflictFiel
                                     reject(err);
                                 });
                         } else{
+                            console.log();
+                            console.log(table,'statuses');
+                            console.log('  done:',dones);
+                            console.log('  key-change:',keychanges);
+                            console.log('  new:',news);
+                            console.log('  conflict:',conflicts);
+                            console.log('______________________________');
                             resolve();
                         }
                     }.bind(this));
